@@ -1,4 +1,5 @@
 import { v2 as cloudinary } from "cloudinary";
+import fs from "fs/promises";
 import { config } from "../../config";
 
 cloudinary.config({
@@ -12,11 +13,17 @@ export const uploadToCloudinary = async (
   folder: string,
   resourceType: "image" | "video" | "auto" = "auto"
 ): Promise<{ url: string; publicId: string }> => {
-  const result = await cloudinary.uploader.upload(filePath, {
-    folder,
-    resource_type: resourceType,
-  });
-  return { url: result.secure_url, publicId: result.public_id };
+  try {
+    const result = await cloudinary.uploader.upload(filePath, {
+      folder,
+      resource_type: resourceType,
+    });
+
+    return { url: result.secure_url, publicId: result.public_id };
+  } finally {
+    // Remove the temporary local file after Cloudinary reads it.
+    await fs.unlink(filePath).catch(() => undefined);
+  }
 };
 
 export const deleteFromCloudinary = async (
